@@ -1,0 +1,178 @@
+{% load static %}
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>ブックマーク一覧</title>
+    <link rel="stylesheet" href="{% static 'css/top.css' %}">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
+    <link rel="icon" href="{% static 'red.png' %}">
+</head>
+<body>
+
+<div id="scroll_position" title="{{ scroll_position }}"></div>
+<div id="category_order_display" title="{{ category_order_display }}"></div>
+
+    <div class="category_order_arrows_display_button_div">
+        <div class="category_order_arrows_display_button" onclick="category_order_change_display()">↑↓</div><div class="empty_block"></div>
+    </div>
+
+    <div class="category_order_arrows_wrap opacity_z-index" id="category_order_arrows_wrap">
+        {% for category in categories %}
+
+                <div class="category_order_arrow_div" title="{{ category.pk }}" draggable="true" ondragstart="CategoryDragStarted(event)" ondragover="CategoryDraggingOver(event)" ondrop="CategoryDropped(event)">
+                    ↑↓
+                </div>
+
+        {% endfor %}
+        <div class="empty_block"></div>
+    </div>
+
+
+<div class="select_box_div">
+
+    <select multiple class="category_select" id="category_select" onchange="select_category()" draggable="true">
+        <option value="not_category_name_div" draggable="true">未分類</option>
+        {% for category in categories %}
+            <option value="{{ category.category_name }}" draggable="true">{{ category.category_name }}</option>
+        {% endfor %}
+    </select>
+
+</div>
+
+
+
+<form action="{% url 'url_admin_app:top' %}" method="POST" class="category_form" onSubmit="return nidoosi(this)">
+    {% csrf_token %}
+    {{ form.category_name }}
+    <div class="send_button"><button type="submit">作成</button></div>
+</form>
+
+<div class="category_name_div_div" id="not_category_name_div">
+    <div class="not_category_name" id="not_category_name">未分類(このPCのブックマーク)</div>
+    {% for bookmark in no_bookmark_list %}
+        <li class="url_li" draggable="true" ondragstart="dragStarted(event)" ondragover="draggingOver(event)" ondrop="dropped(event)">
+            <a href="{{ bookmark.1 }}" class="list_a" target="_blank" rel="noopener" draggable="false">
+                <div class="page_img"><img src="{{ bookmark.2 }}" draggable="false"></div>
+                <div class="page_title" draggable="false">{{ bookmark.0 }}</div>
+            </a>
+        </li>
+    {% endfor %}
+
+    <div class="bottom_line"></div>
+</div>
+
+<div class="category_wrap">
+    {% for key, value in category_bookmark_dic.items %}
+    <div class="category_name_div_div none" id="{{ key.category_name }}">
+        <div class="category_name_div">
+            <div class="category_name">
+                <div class="category_pk" title="{{ key.pk }}" id="{{ key.pk }}"></div>
+
+                <div class="name">{{ key.category_name }}</div>
+
+                <div class="send_form_div">
+                    <form action="{% url 'url_admin_app:category_delete' %}" method="POST" class="category_delete_form" onSubmit="return delete_check()">
+                        {% csrf_token %}
+                    <input type="hidden" name="category_pk" value="{{ key.pk }}">
+                    <input type="hidden" name="body_scroll_px" value="">
+                    <button type="submit" class="submit_button"><i class="far fa-trash-alt"></i></button>
+                    </form>
+                </div>
+
+                <i class="fas fa-compress" onclick="list_none(event)"></i>
+                <div class="bookmark_count">{{ value.count }}</div>
+            </div>
+        </div>
+
+        <div class="bookmark" ondragstart="dragStarted(event)" ondragover="draggingOver(event)" ondrop="dropped2(event)">
+
+            {% for bookmark in value %}
+
+                <li class="url_li" draggable="true" ondragstart="dragStarted(event)" ondragover="draggingOver(event)" ondrop="dropped(event)">
+                    <div class="edit_mark_div" title="{{ bookmark.pk }}" onclick="memo_edit_form_display(event)">
+                        <i class="fas fa-edit"></i>
+                    </div>
+
+                    <a href="{{ bookmark.url }}" class="list_a" target="_blank" draggable="false">
+                        {% if "file:///" in bookmark.url %}
+                            <div class="page_img"><i class="fas fa-download"></i></div>
+                            <div class="page_title" draggable="false">{{ bookmark.page_title }}<input type="hidden" value="{{ bookmark.url }}">
+                                <div class="link_copy_wrap"><div class="link_copy_message none">link copy</div><div class="copied_message none">copied!!</div><i class="fas fa-copy" onclick="link_copy(event)"></i></div>
+                            </div>
+                        {% else %}
+                            <div class="page_img"><img src="{{ bookmark.favicon_url }}" draggable="false"></div>
+                            <div class="page_title" draggable="false">{{ bookmark.page_title }}</div>
+                        {% endif %}
+                    </a>
+
+                    {% if bookmark.memo %}
+                        <div class="memo_div"><p>{{ bookmark.memo }}</p></div>
+                    {% endif %}
+
+                    <div class="memo_form none" id="{{ bookmark.pk }}_form">
+                        <form action="{% url 'url_admin_app:page_memo' %}" method="POST" class="page_memo_form" onSubmit="return nidoosi(this)">
+                            {% csrf_token %}
+                            <textarea id="id_memo" rows="6" cols="60" name="memo" class="memo_textarea">{% if bookmark.memo %}{{ bookmark.memo }}{% endif %}</textarea>
+                            <input type="hidden" name="bookmark_pk" value="{{ bookmark.pk }}">
+                            <input type="hidden" name="body_scroll_px" value="">
+                            <div class="memo_save_button_div_div">
+                                <div class="memo_save_button_div"><button class="memo_save_button" type="submit">保存</button></div>
+                            </div>
+                        </form>
+
+                        <div class="bookmark_delete_form_div">
+                            <form action="{% url 'url_admin_app:bookmark_delete' %}" method="POST" class="category_delete_form" onSubmit="return bookmark_delete_check()">
+                                {% csrf_token %}
+                            <input type="hidden" name="bookmark_pk" value="{{ bookmark.pk }}">
+                            <input type="hidden" name="body_scroll_px" value="">
+                            <div class="bookmark_delete_button_div">
+                                <button type="submit" class="bookmark_delete_button"><i class="far fa-trash-alt"></i></button>
+                            </div>
+
+                            </form>
+                        </div>
+
+                    </div>
+
+                </li>
+            {% endfor %}
+
+        </div>
+        <div class="bottom_line"></div>
+    </div>
+    {% endfor %}
+</div>
+
+
+</body>
+</html>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+<script type="text/javascript" src="{% static 'js/drag_drop.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/category_delete.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/bookmark_delete.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/list_none.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/select_category.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/nidoosi.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/bookmark.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/memo_edit_form_display.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/scroll.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/category_order_change_display.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/drag_drop_category_order_change.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/ready_category_order_display.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/link_copy.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/double_category_scroll.js' %}"></script>
+
+<script>
+    var first_category_list = {{ first_display_list | safe }};
+    var category_select = document.getElementById("category_select");
+
+    category_select.querySelector("option[value=not_category_name_div]").selected = true;
+
+    for (const elem of first_category_list) {
+
+      category_select.querySelector("option[value=" + elem + "]").selected = true;
+      document.getElementById(elem).classList.remove('none');
+
+    }
+</script>
